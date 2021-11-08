@@ -14,7 +14,7 @@ import (
 
 const configPathEnv = "BEDPROX_CONFIG_PATH"
 
-var configPath = "config.yaml"
+var configPath = "config.yml"
 
 func envString(name string, value string) string {
 	envString := os.Getenv(name)
