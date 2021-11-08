@@ -1,0 +1,52 @@
+processing_nodes:
+  count: 10
+
+api:
+  bind: 0.0.0.0:8080
+
+gateways:
+  mygateway:
+    listeners:
+      default:
+        bind: 0.0.0.0:19132
+    receive_proxy_protocol: false
+    servers:
+      - myserver
+
+servers:
+  myserver:
+    domains:
+      - 192.168.1.22
+    address: example.com:19132
+    send_proxy_protocol: false
+    webhooks:
+      - mywebhook
+
+webhooks:
+  mywebhook:
+    url: https://mc.example.com/callback
+    events:
+      - PlayerJoin
+      - PlayerLeave
+
+defaults:
+  gateway:
+    listener:
+      ping_status:
+          edition: MCPE
+          protocol_version: 471
+          version_name: "1.17.41"
+          player_count: 0
+          max_player_count: 10
+          game_mode: SURVIVAL
+          game_mode_numeric: 1
+          motd: |
+            BedProx
+            Join!
+  server:
+    proxy_bind: 0.0.0.0
+    dial_timeout: 5s
+    disconnect_message: Sorry {{username}}, but the server is offline.
+  webhook:
+    client_timeout: 1s
+

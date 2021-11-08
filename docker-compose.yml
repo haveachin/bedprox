@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  bedrocktest:
+    build: .
+    container_name: bedprox
+    restart: unless-stopped
+    ports:
+      - "19132:19132/udp"
+    volumes:
+      - "./data/bedprox:/configs"
+    environment:
+      BEDPROX_CONFIG_PATH: "/configs/config.yml"
