@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/haveachin/bedprox/packet"
-	"github.com/haveachin/bedprox/packet/login"
+	"github.com/haveachin/bedprox/protocol"
+	"github.com/haveachin/bedprox/protocol/login"
 	"github.com/pires/go-proxyproto"
 )
 
@@ -54,7 +54,7 @@ func (cp ConnProcessor) ProcessConn(c *ProcessingConn) error {
 	}
 	c.readBytes = b
 
-	decoder := packet.NewDecoder(bytes.NewReader(b))
+	decoder := protocol.NewDecoder(bytes.NewReader(b))
 	pks, err := decoder.Decode()
 	if err != nil {
 		return err
@@ -64,8 +64,8 @@ func (cp ConnProcessor) ProcessConn(c *ProcessingConn) error {
 		return errors.New("no valid packets received")
 	}
 
-	var loginPk packet.Login
-	if err := packet.Unmarshal(pks[0], &loginPk); err != nil {
+	var loginPk protocol.Login
+	if err := protocol.Unmarshal(pks[0], &loginPk); err != nil {
 		return err
 	}
 

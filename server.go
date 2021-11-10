@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/haveachin/bedprox/packet"
+	"github.com/haveachin/bedprox/protocol"
 	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
 )
@@ -53,20 +53,20 @@ func (s Server) replaceTemplates(c ProcessingConn, msg string) string {
 func (s Server) handleOffline(c ProcessingConn) error {
 	msg := s.replaceTemplates(c, s.DisconnectMessage)
 
-	pk := packet.Disconnect{
+	pk := protocol.Disconnect{
 		HideDisconnectionScreen: false,
 		Message:                 msg,
 	}
 
-	buf := packet.BufferPool.Get().(*bytes.Buffer)
+	buf := protocol.BufferPool.Get().(*bytes.Buffer)
 	defer func() {
 		// Reset the buffer so we can return it to the buffer pool safely.
 		buf.Reset()
-		packet.BufferPool.Put(buf)
+		protocol.BufferPool.Put(buf)
 	}()
 
-	pk.Marshal(packet.NewWriter(buf))
-	encoder := packet.NewEncoder(buf)
+	pk.Marshal(protocol.NewWriter(buf))
+	encoder := protocol.NewEncoder(buf)
 	b := make([]byte, buf.Len())
 	if err := encoder.Encode(b); err != nil {
 		return err

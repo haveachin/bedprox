@@ -1,4 +1,4 @@
-package packet
+package protocol
 
 // Login is sent when the client initially tries to join the server. It is the first packet sent and contains
 // information specific to the player.
