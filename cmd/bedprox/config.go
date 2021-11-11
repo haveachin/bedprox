@@ -11,7 +11,7 @@ import (
 
 	_ "embed"
 
-	"github.com/haveachin/bedprox"
+	"github.com/haveachin/bedprox/bedrock"
 	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
 	"github.com/spf13/viper"
@@ -47,8 +47,8 @@ type pingStatusConfig struct {
 	MOTD            string `mapstructure:"motd,omitempty"`
 }
 
-func newPingStatus(cfg pingStatusConfig) bedprox.PingStatus {
-	return bedprox.PingStatus{
+func newPingStatus(cfg pingStatusConfig) bedrock.PingStatus {
+	return bedrock.PingStatus{
 		Edition:         cfg.Edition,
 		ProtocolVersion: cfg.ProtocolVersion,
 		VersionName:     cfg.VersionName,
