@@ -12,6 +12,17 @@ type Header struct {
 	TargetSubClient byte
 }
 
+func (header *Header) Write(w io.ByteWriter) error {
+	x := header.PacketID | (uint32(header.SenderSubClient) << 10) | (uint32(header.TargetSubClient) << 12)
+	for x >= 0x80 {
+		if err := w.WriteByte(byte(x) | 0x80); err != nil {
+			return err
+		}
+		x >>= 7
+	}
+	return w.WriteByte(byte(x))
+}
+
 func (header *Header) Read(r io.ByteReader) error {
 	var value uint32
 	if err := Varuint32(r, &value); err != nil {
@@ -23,7 +34,7 @@ func (header *Header) Read(r io.ByteReader) error {
 	return nil
 }
 
-func Unmarshal(b []byte, pk Packet) error {
+func UnmarshalPacket(b []byte, pk Packet) error {
 	data, err := parseData(b)
 	if err != nil {
 		return err
@@ -34,6 +45,23 @@ func Unmarshal(b []byte, pk Packet) error {
 	}
 
 	return data.decode(pk)
+}
+
+func MarshalPacket(pk Packet) ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	w := NewWriter(buf)
+
+	header := Header{PacketID: pk.ID()}
+	_ = header.Write(w)
+	pk.Marshal(w)
+
+	encodedPk := bytes.NewBuffer([]byte{})
+	encoder := NewEncoder(encodedPk)
+	if err := encoder.Encode(buf.Bytes()); err != nil {
+		return nil, err
+	}
+
+	return encodedPk.Bytes(), nil
 }
 
 type packetData struct {
@@ -62,6 +90,7 @@ type Packet interface {
 	// Unmarshal decodes a serialised packet in buf into the Packet instance. The serialised packet passed
 	// into Unmarshal will not have a header in it.
 	Unmarshal(r *Reader) error
+	Marshal(w *Writer)
 }
 
 // decode decodes the packet payload held in the packetData and returns the packet.Packet decoded.

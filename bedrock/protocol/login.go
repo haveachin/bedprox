@@ -1,5 +1,7 @@
 package protocol
 
+import "log"
+
 // Login is sent when the client initially tries to join the server. It is the first packet sent and contains
 // information specific to the player.
 type Login struct {
@@ -24,4 +26,9 @@ func (pk *Login) Unmarshal(r *Reader) error {
 		return err
 	}
 	return nil
+}
+
+// Marshal ...
+func (pk *Login) Marshal(buf *Writer) {
+	log.Fatal("not implemented yet")
 }

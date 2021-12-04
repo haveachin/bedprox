@@ -1,7 +1,6 @@
 package bedrock
 
 import (
-	"bytes"
 	"fmt"
 	"net"
 	"strings"
@@ -75,19 +74,11 @@ func (s Server) handleOffline(c ProcessedConn) error {
 		Message:                 msg,
 	}
 
-	buf := protocol.BufferPool.Get().(*bytes.Buffer)
-	defer func() {
-		// Reset the buffer so we can return it to the buffer pool safely.
-		buf.Reset()
-		protocol.BufferPool.Put(buf)
-	}()
-
-	pk.Marshal(protocol.NewWriter(buf))
-	encoder := protocol.NewEncoder(buf)
-	b := make([]byte, buf.Len())
-	if err := encoder.Encode(b); err != nil {
+	b, err := protocol.MarshalPacket(&pk)
+	if err != nil {
 		return err
 	}
+
 	if _, err := c.Write(b); err != nil {
 		return err
 	}
@@ -103,6 +94,7 @@ func (s Server) ProcessConn(c net.Conn, webhooks []webhook.Webhook) (bedprox.Con
 			s.Log.Error(err, "failed to handle offline")
 			return bedprox.ConnTunnel{}, err
 		}
+		s.Log.Info("disconnected client")
 		return bedprox.ConnTunnel{}, err
 	}
 

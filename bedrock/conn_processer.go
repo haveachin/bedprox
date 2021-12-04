@@ -50,7 +50,7 @@ func (cp ConnProcessor) ProcessConn(c net.Conn) (bedprox.ProcessedConn, error) {
 	}
 
 	var loginPk protocol.Login
-	if err := protocol.Unmarshal(pks[0], &loginPk); err != nil {
+	if err := protocol.UnmarshalPacket(pks[0], &loginPk); err != nil {
 		return nil, err
 	}
 
