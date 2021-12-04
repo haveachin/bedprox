@@ -24,6 +24,10 @@ func (t ConnTunnel) Start() {
 }
 
 func (t ConnTunnel) Close() {
-	_ = t.Conn.Close()
-	_ = t.RemoteConn.Close()
+	if t.Conn != nil {
+		_ = t.Conn.Close()
+	}
+	if t.RemoteConn != nil {
+		_ = t.RemoteConn.Close()
+	}
 }
