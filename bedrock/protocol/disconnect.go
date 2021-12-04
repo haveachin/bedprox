@@ -1,4 +1,6 @@
-package packet
+package protocol
+
+import "log"
 
 // Disconnect may be sent by the server to disconnect the client using an optional message to send as the
 // disconnect screen.
@@ -18,8 +20,14 @@ func (*Disconnect) ID() uint32 {
 
 // Marshal ...
 func (pk *Disconnect) Marshal(w *Writer) {
-	w.Bool(&pk.HideDisconnectionScreen)
+	w.Bool(pk.HideDisconnectionScreen)
 	if !pk.HideDisconnectionScreen {
-		w.String(&pk.Message)
+		w.String(pk.Message)
 	}
+}
+
+// Unmarshal ...
+func (pk *Disconnect) Unmarshal(buf *Reader) error {
+	log.Fatal("not implemented yet")
+	return nil
 }

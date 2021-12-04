@@ -45,7 +45,7 @@ defaults:
             Join!
   server:
     proxy_bind: 0.0.0.0
-    dial_timeout: 5s
+    dial_timeout: 1s
     disconnect_message: Sorry {{username}}, but the server is offline.
   webhook:
     client_timeout: 1s

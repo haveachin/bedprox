@@ -1,4 +1,4 @@
-package packet
+package protocol
 
 import (
 	"encoding/binary"
@@ -6,23 +6,22 @@ import (
 	"io"
 )
 
-type Reader struct {
-	r interface {
-		io.Reader
-		io.ByteReader
-	}
-}
-
-func NewReader(r interface {
+type DecodeReader interface {
 	io.Reader
 	io.ByteReader
-}) *Reader {
-	return &Reader{r: r}
+}
+
+type Reader struct {
+	DecodeReader
+}
+
+func NewReader(r DecodeReader) *Reader {
+	return &Reader{DecodeReader: r}
 }
 
 func (r *Reader) BEInt32(x *int32) error {
 	b := make([]byte, 4)
-	if _, err := r.r.Read(b); err != nil {
+	if _, err := r.Read(b); err != nil {
 		return err
 	}
 	*x = int32(binary.BigEndian.Uint32(b))
@@ -35,10 +34,10 @@ func (r *Reader) ByteSlice(x *[]byte) error {
 	l := int(length)
 	int32max := 1<<31 - 1
 	if l > int32max {
-		return errors.New("")
+		return errors.New("byte slice overflows int32")
 	}
 	data := make([]byte, l)
-	if _, err := r.r.Read(data); err != nil {
+	if _, err := r.Read(data); err != nil {
 		return err
 	}
 	*x = data
@@ -48,7 +47,7 @@ func (r *Reader) ByteSlice(x *[]byte) error {
 func (r *Reader) Varuint32(x *uint32) error {
 	var v uint32
 	for i := 0; i < 35; i += 7 {
-		b, err := r.r.ReadByte()
+		b, err := r.ReadByte()
 		if err != nil {
 			return err
 		}
@@ -59,5 +58,5 @@ func (r *Reader) Varuint32(x *uint32) error {
 			return nil
 		}
 	}
-	return errors.New("varint overflows integer")
+	return errors.New("varint overflows int32")
 }

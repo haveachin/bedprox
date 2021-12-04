@@ -1,0 +1,72 @@
+package bedrock
+
+import (
+	"bufio"
+	"bytes"
+	"errors"
+	"net"
+	"strings"
+
+	"github.com/go-logr/logr"
+	"github.com/haveachin/bedprox"
+	"github.com/haveachin/bedprox/bedrock/protocol"
+	"github.com/haveachin/bedprox/bedrock/protocol/login"
+	"github.com/pires/go-proxyproto"
+)
+
+// Processing Node
+type ConnProcessor struct {
+	Log logr.Logger
+}
+
+func (cp ConnProcessor) ProcessConn(c net.Conn) (bedprox.ProcessedConn, error) {
+	pc := ProcessedConn{
+		Conn:       c.(*Conn),
+		remoteAddr: c.RemoteAddr(),
+	}
+
+	if pc.proxyProtocol {
+		header, err := proxyproto.Read(bufio.NewReader(c))
+		if err != nil {
+			return nil, err
+		}
+		pc.remoteAddr = header.SourceAddr
+	}
+
+	b, err := pc.ReadPacket()
+	if err != nil {
+		return nil, err
+	}
+	pc.readBytes = b
+
+	decoder := protocol.NewDecoder(bytes.NewReader(b))
+	pks, err := decoder.Decode()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pks) < 1 {
+		return nil, errors.New("no valid packets received")
+	}
+
+	var loginPk protocol.Login
+	if err := protocol.UnmarshalPacket(pks[0], &loginPk); err != nil {
+		return nil, err
+	}
+
+	iData, cData, err := login.Parse(loginPk.ConnectionRequest)
+	if err != nil {
+		return nil, err
+	}
+	pc.username = iData.DisplayName
+	pc.srvHost = cData.ServerAddress
+
+	if strings.Contains(pc.srvHost, ":") {
+		pc.srvHost, _, err = net.SplitHostPort(pc.srvHost)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &pc, nil
+}
