@@ -7,9 +7,9 @@ api:
 gateways:
   mygateway:
     listeners:
-      default:
-        bind: 0.0.0.0:19132
-    receive_proxy_protocol: false
+      - bind: 0.0.0.0:19132
+        receive_proxy_protocol: false
+        receive_real_ip: false
     servers:
       - myserver
 
@@ -33,16 +33,16 @@ defaults:
   gateway:
     listener:
       ping_status:
-          edition: MCPE
-          protocol_version: 471
-          version_name: "1.17.41"
-          player_count: 0
-          max_player_count: 10
-          game_mode: SURVIVAL
-          game_mode_numeric: 1
-          motd: |
-            BedProx
-            Join!
+        edition: MCPE
+        protocol_version: 471
+        version_name: "1.17.41"
+        player_count: 0
+        max_player_count: 10
+        game_mode: SURVIVAL
+        game_mode_numeric: 1
+        motd: |
+          BedProx
+          Join!
   server:
     proxy_bind: 0.0.0.0
     dial_timeout: 1s
