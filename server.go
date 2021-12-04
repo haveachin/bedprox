@@ -43,7 +43,6 @@ func (sg *ServerGateway) indexServers() error {
 }
 
 // indexWebhooks indexes the webhooks that servers use.
-// This creates a map
 func (sg *ServerGateway) indexWebhooks() error {
 	whks := map[string]webhook.Webhook{}
 	for _, w := range sg.Webhooks {
