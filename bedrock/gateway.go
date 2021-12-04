@@ -53,6 +53,14 @@ type Gateway struct {
 	Log           logr.Logger
 }
 
+func (gw Gateway) GetID() string {
+	return gw.ID
+}
+
+func (gw Gateway) GetServerIDs() []string {
+	return gw.ServerIDs
+}
+
 func (gw *Gateway) SetLogger(log logr.Logger) {
 	gw.Log = log
 }
@@ -79,9 +87,9 @@ func (gw *Gateway) ListenAndServe(cpnChan chan<- net.Conn) error {
 func (gw Gateway) wrapConn(c net.Conn, l Listener) *Conn {
 	return &Conn{
 		Conn:          c.(*raknet.Conn),
+		gatewayID:     gw.ID,
 		proxyProtocol: l.ReceiveProxyProtocol,
 		realIP:        l.ReceiveRealIP,
-		serverIDs:     gw.ServerIDs,
 	}
 }
 

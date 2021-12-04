@@ -11,9 +11,9 @@ import (
 type Conn struct {
 	*raknet.Conn
 
+	gatewayID     string
 	proxyProtocol bool
 	realIP        bool
-	serverIDs     []string
 }
 
 type ProcessedConn struct {
@@ -23,11 +23,14 @@ type ProcessedConn struct {
 	srvHost       string
 	username      string
 	proxyProtocol bool
-	serverIDs     []string
 }
 
 func (c ProcessedConn) RemoteAddr() net.Addr {
 	return c.remoteAddr
+}
+
+func (c ProcessedConn) GatewayID() string {
+	return c.gatewayID
 }
 
 func (c ProcessedConn) Username() string {
@@ -36,15 +39,6 @@ func (c ProcessedConn) Username() string {
 
 func (c ProcessedConn) ServerAddr() string {
 	return c.srvHost
-}
-
-func (c ProcessedConn) CanJoinServerWithID(serverID string) bool {
-	for _, srvID := range c.serverIDs {
-		if srvID == serverID {
-			return true
-		}
-	}
-	return false
 }
 
 func (c ProcessedConn) Disconnect(msg string) error {

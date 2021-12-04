@@ -7,9 +7,9 @@ import (
 
 type ProcessedConn interface {
 	net.Conn
+	GatewayID() string
 	Username() string
 	ServerAddr() string
-	CanJoinServerWithID(serverID string) bool
 	Disconnect(msg string) error
 }
 
