@@ -9,6 +9,8 @@ type ProcessedConn interface {
 	net.Conn
 	Username() string
 	ServerAddr() string
+	CanJoinServerWithID(serverID string) bool
+	Disconnect(msg string) error
 }
 
 type ConnTunnel struct {

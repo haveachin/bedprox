@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/haveachin/bedprox"
-	"github.com/haveachin/bedprox/bedrock/protocol"
 	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
 )
@@ -69,22 +68,7 @@ func (s Server) replaceTemplates(c ProcessedConn, msg string) string {
 
 func (s Server) handleOffline(c ProcessedConn) error {
 	msg := s.replaceTemplates(c, s.DisconnectMessage)
-
-	pk := protocol.Disconnect{
-		HideDisconnectionScreen: false,
-		Message:                 msg,
-	}
-
-	b, err := protocol.MarshalPacket(&pk)
-	if err != nil {
-		return err
-	}
-
-	if _, err := c.Write(b); err != nil {
-		return err
-	}
-
-	return nil
+	return c.Disconnect(msg)
 }
 
 func (s Server) ProcessConn(c net.Conn, webhooks []webhook.Webhook) (bedprox.ConnTunnel, error) {

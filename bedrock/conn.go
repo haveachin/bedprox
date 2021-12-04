@@ -3,6 +3,7 @@ package bedrock
 import (
 	"net"
 
+	"github.com/haveachin/bedprox/bedrock/protocol"
 	"github.com/sandertv/go-raknet"
 )
 
@@ -11,6 +12,7 @@ type Conn struct {
 	*raknet.Conn
 
 	proxyProtocol bool
+	realIP        bool
 	serverIDs     []string
 }
 
@@ -34,4 +36,31 @@ func (c ProcessedConn) Username() string {
 
 func (c ProcessedConn) ServerAddr() string {
 	return c.srvHost
+}
+
+func (c ProcessedConn) CanJoinServerWithID(serverID string) bool {
+	for _, srvID := range c.serverIDs {
+		if srvID == serverID {
+			return true
+		}
+	}
+	return false
+}
+
+func (c ProcessedConn) Disconnect(msg string) error {
+	pk := protocol.Disconnect{
+		HideDisconnectionScreen: msg == "",
+		Message:                 msg,
+	}
+
+	b, err := protocol.MarshalPacket(&pk)
+	if err != nil {
+		return err
+	}
+
+	if _, err := c.Write(b); err != nil {
+		return err
+	}
+
+	return nil
 }

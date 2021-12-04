@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/haveachin/bedprox/webhook"
@@ -64,6 +65,22 @@ func (sg *ServerGateway) indexWebhooks() error {
 	return nil
 }
 
+func (sg ServerGateway) executeTemplate(msg string, c ProcessedConn) string {
+	tmpls := map[string]string{
+		"username":      c.Username(),
+		"now":           time.Now().Format(time.RFC822),
+		"remoteAddress": c.RemoteAddr().String(),
+		"localAddress":  c.LocalAddr().String(),
+		"serverAddress": c.ServerAddr(),
+	}
+
+	for k, v := range tmpls {
+		msg = strings.Replace(msg, fmt.Sprintf("{{%s}}", k), v, -1)
+	}
+
+	return msg
+}
+
 func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- ConnTunnel) error {
 	if err := sg.indexServers(); err != nil {
 		return err
@@ -83,9 +100,19 @@ func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- Conn
 		srv, ok := sg.srvs[hostLower]
 		if !ok {
 			sg.Log.Info("invlaid server host",
-				"serverId", hostLower,
+				"serverAddress", hostLower,
 				"remoteAddress", pc.RemoteAddr(),
 			)
+			_ = pc.Disconnect("Server not found")
+			continue
+		}
+
+		if !pc.CanJoinServerWithID(srv.GetID()) {
+			sg.Log.Info("server not in gateway",
+				"serverId", srv.GetID(),
+				"remoteAddress", pc.RemoteAddr(),
+			)
+			_ = pc.Disconnect("This is not the server you are looking for")
 			continue
 		}
 

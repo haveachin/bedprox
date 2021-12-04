@@ -7,16 +7,16 @@ api:
 gateways:
   mygateway:
     listeners:
-      - bind: 0.0.0.0:19132
-        receive_proxy_protocol: false
-        receive_real_ip: false
+      - bind: 192.168.1.21:19132
+      - bind: 192.168.1.31:19132
     servers:
       - myserver
 
 servers:
   myserver:
     domains:
-      - 192.168.1.22
+      - 192.168.1.31
+      - 192.168.1.21
     address: example.com:19132
     send_proxy_protocol: false
     webhooks:
@@ -32,6 +32,8 @@ webhooks:
 defaults:
   gateway:
     listener:
+      receive_proxy_protocol: false
+      receive_real_ip: false
       ping_status:
         edition: MCPE
         protocol_version: 471

@@ -37,19 +37,20 @@ func (p PingStatus) marshal(l *raknet.Listener) []byte {
 }
 
 type Listener struct {
-	Bind       string
-	PingStatus PingStatus
+	Bind                 string
+	ReceiveProxyProtocol bool
+	ReceiveRealIP        bool
+	PingStatus           PingStatus
 
 	*raknet.Listener
 }
 
 type Gateway struct {
-	ID                   string
-	Listeners            []Listener
-	ReceiveProxyProtocol bool
-	ClientTimeout        time.Duration
-	ServerIDs            []string
-	Log                  logr.Logger
+	ID            string
+	Listeners     []Listener
+	ClientTimeout time.Duration
+	ServerIDs     []string
+	Log           logr.Logger
 }
 
 func (gw *Gateway) SetLogger(log logr.Logger) {
@@ -75,10 +76,11 @@ func (gw *Gateway) ListenAndServe(cpnChan chan<- net.Conn) error {
 	return nil
 }
 
-func (gw Gateway) wrapConn(c net.Conn) *Conn {
+func (gw Gateway) wrapConn(c net.Conn, l Listener) *Conn {
 	return &Conn{
 		Conn:          c.(*raknet.Conn),
-		proxyProtocol: gw.ReceiveProxyProtocol,
+		proxyProtocol: l.ReceiveProxyProtocol,
+		realIP:        l.ReceiveRealIP,
 		serverIDs:     gw.ServerIDs,
 	}
 }
@@ -100,7 +102,7 @@ func (gw *Gateway) listenAndServe(cpnChan chan<- net.Conn) {
 					"remoteAddress", c.RemoteAddr(),
 				)
 
-				cpnChan <- gw.wrapConn(c)
+				cpnChan <- gw.wrapConn(c, l)
 			}
 			wg.Done()
 		}()

@@ -71,16 +71,25 @@ type listenerConfig struct {
 
 func newListener(cfg listenerConfig) bedrock.Listener {
 	return bedrock.Listener{
-		Bind:       cfg.Bind,
-		PingStatus: newPingStatus(cfg.PingStatus),
+		Bind:                 cfg.Bind,
+		PingStatus:           newPingStatus(cfg.PingStatus),
+		ReceiveProxyProtocol: cfg.ReceiveProxyProtocol,
+		ReceiveRealIP:        cfg.ReceiveRealIP,
 	}
 }
 
 func loadListeners(gatewayID string) ([]bedrock.Listener, error) {
-	var listeners []bedrock.Listener
-	for _, v := range viper.GetStringMap("gateways." + gatewayID + ".listeners") {
+	key := fmt.Sprintf("gateways.%s.listeners", gatewayID)
+	ll, ok := viper.Get(key).([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("gateway %q is missing listeners", gatewayID)
+	}
+
+	listeners := make([]bedrock.Listener, len(ll))
+	for n := range ll {
 		vpr := viper.Sub("defaults.gateway.listener")
-		vMap := v.(map[string]interface{})
+		lKey := fmt.Sprintf("%s.%d", key, n)
+		vMap := viper.GetStringMap(lKey)
 		if err := vpr.MergeConfigMap(vMap); err != nil {
 			return nil, err
 		}
@@ -88,14 +97,12 @@ func loadListeners(gatewayID string) ([]bedrock.Listener, error) {
 		if err := vpr.Unmarshal(&cfg); err != nil {
 			return nil, err
 		}
-		listeners = append(listeners, newListener(cfg))
+		listeners[n] = newListener(cfg)
 	}
-
 	return listeners, nil
 }
 
 type gatewayConfig struct {
-	listeners     []listenerConfig
 	ClientTimeout time.Duration `mapstructure:"client_timeout"`
 	Servers       []string      `mapstructure:"servers"`
 }
@@ -126,11 +133,6 @@ func loadGateways() ([]bedprox.Gateway, error) {
 		if err := vpr.Unmarshal(&cfg); err != nil {
 			return nil, err
 		}
-		listenerCfgs, err := loadListenerConfigs(id)
-		if err != nil {
-			return nil, err
-		}
-		cfg.listeners = listenerCfgs
 		gateway, err := newGateway(id, cfg)
 		if err != nil {
 			return nil, err
@@ -139,30 +141,6 @@ func loadGateways() ([]bedprox.Gateway, error) {
 	}
 
 	return gateways, nil
-}
-
-func loadListenerConfigs(gatewayID string) ([]listenerConfig, error) {
-	key := fmt.Sprintf("gateways.%s.listeners", gatewayID)
-	listeners, ok := viper.Get(key).([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("gateway %q is missing listeners", gatewayID)
-	}
-
-	listenerCfgs := make([]listenerConfig, len(listeners))
-	for n := range listeners {
-		vpr := viper.Sub("defaults.gateway.listener")
-		lKey := fmt.Sprintf("%s.%d", key, n)
-		vMap := viper.GetStringMap(lKey)
-		if err := vpr.MergeConfigMap(vMap); err != nil {
-			return nil, err
-		}
-		var cfg listenerConfig
-		if err := vpr.Unmarshal(&cfg); err != nil {
-			return nil, err
-		}
-		listenerCfgs[n] = cfg
-	}
-	return listenerCfgs, nil
 }
 
 type serverConfig struct {
