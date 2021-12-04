@@ -1,14 +1,15 @@
-package bedprox
+package bedrock
 
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"net"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/haveachin/bedprox/protocol"
+	"github.com/haveachin/bedprox"
+	"github.com/haveachin/bedprox/bedrock/protocol"
 	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
 )
@@ -24,6 +25,22 @@ type Server struct {
 	Log               logr.Logger
 }
 
+func (s Server) GetID() string {
+	return s.ID
+}
+
+func (s Server) GetDomains() []string {
+	return s.Domains
+}
+
+func (s Server) GetWebhookIDs() []string {
+	return s.WebhookIDs
+}
+
+func (s *Server) SetLogger(log logr.Logger) {
+	s.Log = log
+}
+
 func (s Server) Dial() (*raknet.Conn, error) {
 	c, err := s.Dialer.Dial(s.Address)
 	if err != nil {
@@ -33,7 +50,7 @@ func (s Server) Dial() (*raknet.Conn, error) {
 	return c, nil
 }
 
-func (s Server) replaceTemplates(c ProcessingConn, msg string) string {
+func (s Server) replaceTemplates(c ProcessedConn, msg string) string {
 	tmpls := map[string]string{
 		"username":      c.username,
 		"now":           time.Now().Format(time.RFC822),
@@ -50,7 +67,7 @@ func (s Server) replaceTemplates(c ProcessingConn, msg string) string {
 	return msg
 }
 
-func (s Server) handleOffline(c ProcessingConn) error {
+func (s Server) handleOffline(c ProcessedConn) error {
 	msg := s.replaceTemplates(c, s.DisconnectMessage)
 
 	pk := protocol.Disconnect{
@@ -78,113 +95,25 @@ func (s Server) handleOffline(c ProcessingConn) error {
 	return nil
 }
 
-func (s Server) ProcessConnection(c ProcessingConn) (ProcessedConn, error) {
+func (s Server) ProcessConn(c net.Conn, webhooks []webhook.Webhook) (bedprox.ConnTunnel, error) {
+	pc := c.(*ProcessedConn)
 	rc, err := s.Dial()
 	if err != nil {
-		log.Println("no server conn", err)
-		if err := s.handleOffline(c); err != nil {
-			return ProcessedConn{}, err
+		if err := s.handleOffline(*pc); err != nil {
+			s.Log.Error(err, "failed to handle offline")
+			return bedprox.ConnTunnel{}, err
 		}
-		return ProcessedConn{}, err
+		return bedprox.ConnTunnel{}, err
 	}
 
-	if _, err := rc.Write(c.readBytes); err != nil {
-		log.Println("woops")
+	if _, err := rc.Write(pc.readBytes); err != nil {
+		s.Log.Error(err, "failed to write to server")
 		rc.Close()
-		return ProcessedConn{}, err
+		return bedprox.ConnTunnel{}, err
 	}
 
-	return ProcessedConn{
-		ProcessingConn: c,
-		ServerConn:     rc,
-		ServerID:       s.ID,
+	return bedprox.ConnTunnel{
+		Conn:       c,
+		RemoteConn: rc,
 	}, nil
-}
-
-type ServerGateway struct {
-	Servers  []Server
-	Webhooks []webhook.Webhook
-	Log      logr.Logger
-
-	// Domain mapped to server
-	srvs map[string]Server
-	// Server ID mapped to webhooks
-	srvWhks map[string][]webhook.Webhook
-}
-
-func (sg *ServerGateway) indexServers() error {
-	sg.srvs = map[string]Server{}
-	for _, server := range sg.Servers {
-		for _, host := range server.Domains {
-			hostLower := strings.ToLower(host)
-			if _, exits := sg.srvs[hostLower]; exits {
-				return fmt.Errorf("duplicate server domain %q", hostLower)
-			}
-			sg.srvs[hostLower] = server
-		}
-	}
-	return nil
-}
-
-// indexWebhooks indexes the webhooks that servers use.
-// This creates a map
-func (sg *ServerGateway) indexWebhooks() error {
-	whks := map[string]webhook.Webhook{}
-	for _, w := range sg.Webhooks {
-		whks[w.ID] = w
-	}
-
-	sg.srvWhks = map[string][]webhook.Webhook{}
-	for _, s := range sg.Servers {
-		ww := make([]webhook.Webhook, len(s.WebhookIDs))
-		for n, id := range s.WebhookIDs {
-			w, ok := whks[id]
-			if !ok {
-				return fmt.Errorf("no webhook with id %q", id)
-			}
-			ww[n] = w
-		}
-		sg.srvWhks[s.ID] = ww
-	}
-	return nil
-}
-
-func (sg ServerGateway) Start(srvChan <-chan ProcessingConn, poolChan chan<- ProcessedConn) error {
-	if err := sg.indexServers(); err != nil {
-		return err
-	}
-
-	if err := sg.indexWebhooks(); err != nil {
-		return err
-	}
-
-	for {
-		c, ok := <-srvChan
-		if !ok {
-			break
-		}
-
-		hostLower := strings.ToLower(c.srvHost)
-		srv, ok := sg.srvs[hostLower]
-		if !ok {
-			sg.Log.Info("invlaid server host",
-				"serverId", hostLower,
-				"remoteAddress", c.RemoteAddr(),
-			)
-			continue
-		}
-
-		sg.Log.Info("connecting client",
-			"serverId", hostLower,
-			"remoteAddress", c.RemoteAddr(),
-		)
-		pc, err := srv.ProcessConnection(c)
-		if err != nil {
-			c.Close()
-			continue
-		}
-		poolChan <- pc
-	}
-
-	return nil
 }

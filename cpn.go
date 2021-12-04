@@ -1,6 +1,8 @@
 package bedprox
 
 import (
+	"net"
+
 	"github.com/go-logr/logr"
 )
 
@@ -11,10 +13,10 @@ type CPN struct {
 }
 
 type ConnProcessor interface {
-	ProcessConn(c Conn) (ProcessedConn, error)
+	ProcessConn(c net.Conn) (ProcessedConn, error)
 }
 
-func (cpn *CPN) Start(cpnChan <-chan Conn, srvChan chan<- ProcessedConn) {
+func (cpn *CPN) Start(cpnChan <-chan net.Conn, srvChan chan<- ProcessedConn) {
 	for {
 		c, ok := <-cpnChan
 		if !ok {

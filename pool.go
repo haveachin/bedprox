@@ -15,6 +15,11 @@ func (cp *ConnPool) Start(poolChan <-chan ConnTunnel) {
 			break
 		}
 
+		cp.Log.Info("starting tunnel",
+			"client", ct.Conn.RemoteAddr(),
+			"server", ct.RemoteConn.RemoteAddr(),
+		)
+
 		go ct.Start()
 	}
 }

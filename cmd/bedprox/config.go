@@ -11,6 +11,7 @@ import (
 
 	_ "embed"
 
+	"github.com/haveachin/bedprox"
 	"github.com/haveachin/bedprox/bedrock"
 	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
@@ -65,15 +66,15 @@ type listenerConfig struct {
 	PingStatus pingStatusConfig `mapstructure:"ping_status"`
 }
 
-func newListener(cfg listenerConfig) bedprox.Listener {
-	return bedprox.Listener{
+func newListener(cfg listenerConfig) bedrock.Listener {
+	return bedrock.Listener{
 		Bind:       cfg.Bind,
 		PingStatus: newPingStatus(cfg.PingStatus),
 	}
 }
 
-func loadListeners(gatewayID string) ([]bedprox.Listener, error) {
-	var listeners []bedprox.Listener
+func loadListeners(gatewayID string) ([]bedrock.Listener, error) {
+	var listeners []bedrock.Listener
 	for _, v := range viper.GetStringMap("gateways." + gatewayID + ".listeners") {
 		vpr := viper.Sub("defaults.gateway.listener")
 		vMap := v.(map[string]interface{})
@@ -100,10 +101,10 @@ type gatewayConfig struct {
 func newGateway(id string, cfg gatewayConfig) (bedprox.Gateway, error) {
 	listeners, err := loadListeners(id)
 	if err != nil {
-		return bedprox.Gateway{}, err
+		return nil, err
 	}
 
-	return bedprox.Gateway{
+	return &bedrock.Gateway{
 		ID:                   id,
 		Listeners:            listeners,
 		ReceiveProxyProtocol: cfg.ReceiveProxyProtocol,
@@ -144,7 +145,7 @@ type serverConfig struct {
 }
 
 func newServer(id string, cfg serverConfig) bedprox.Server {
-	return bedprox.Server{
+	return &bedrock.Server{
 		ID:      id,
 		Domains: cfg.Domains,
 		Dialer: raknet.Dialer{
@@ -183,13 +184,13 @@ type cpnConfig struct {
 	Count int `mapstructure:"count"`
 }
 
-func loadCPNs() ([]bedprox.ConnProcessor, error) {
+func loadCPNs() ([]bedprox.CPN, error) {
 	var cfg cpnConfig
 	if err := viper.UnmarshalKey("processing_nodes", &cfg); err != nil {
 		return nil, err
 	}
 
-	return make([]bedprox.ConnProcessor, cfg.Count), nil
+	return make([]bedprox.CPN, cfg.Count), nil
 }
 
 type webhookConfig struct {

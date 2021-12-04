@@ -2,6 +2,7 @@ package bedprox
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -9,10 +10,11 @@ import (
 )
 
 type Server interface {
-	ID() string
-	Domains() []string
-	WebhookIDs() []string
-	ProcessConn(c Conn) (ConnTunnel, error)
+	GetID() string
+	GetDomains() []string
+	GetWebhookIDs() []string
+	ProcessConn(c net.Conn, webhooks []webhook.Webhook) (ConnTunnel, error)
+	SetLogger(log logr.Logger)
 }
 
 type ServerGateway struct {
@@ -29,7 +31,7 @@ type ServerGateway struct {
 func (sg *ServerGateway) indexServers() error {
 	sg.srvs = map[string]Server{}
 	for _, server := range sg.Servers {
-		for _, host := range server.Domains() {
+		for _, host := range server.GetDomains() {
 			hostLower := strings.ToLower(host)
 			if _, exits := sg.srvs[hostLower]; exits {
 				return fmt.Errorf("duplicate server domain %q", hostLower)
@@ -50,15 +52,15 @@ func (sg *ServerGateway) indexWebhooks() error {
 
 	sg.srvWhks = map[string][]webhook.Webhook{}
 	for _, s := range sg.Servers {
-		ww := make([]webhook.Webhook, len(s.WebhookIDs()))
-		for n, id := range s.WebhookIDs() {
+		ww := make([]webhook.Webhook, len(s.GetWebhookIDs()))
+		for n, id := range s.GetWebhookIDs() {
 			w, ok := whks[id]
 			if !ok {
 				return fmt.Errorf("no webhook with id %q", id)
 			}
 			ww[n] = w
 		}
-		sg.srvWhks[s.ID()] = ww
+		sg.srvWhks[s.GetID()] = ww
 	}
 	return nil
 }
@@ -92,7 +94,9 @@ func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- Conn
 			"serverId", hostLower,
 			"remoteAddress", pc.RemoteAddr(),
 		)
-		ct, err := srv.ProcessConn(pc)
+
+		whks := sg.srvWhks[srv.GetID()]
+		ct, err := srv.ProcessConn(pc, whks)
 		if err != nil {
 			ct.Close()
 			continue

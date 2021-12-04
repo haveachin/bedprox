@@ -1,4 +1,4 @@
-package bedprox
+package bedrock
 
 import (
 	"fmt"
@@ -10,22 +10,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/sandertv/go-raknet"
 )
-
-type Listener struct {
-	Bind       string
-	PingStatus PingStatus
-
-	*raknet.Listener
-}
-
-type Gateway struct {
-	ID                   string
-	Listeners            []Listener
-	ReceiveProxyProtocol bool
-	ClientTimeout        time.Duration
-	ServerIDs            []string
-	Log                  logr.Logger
-}
 
 type PingStatus struct {
 	Edition         string
@@ -52,9 +36,29 @@ func (p PingStatus) marshal(l *raknet.Listener) []byte {
 		l.ID(), motd2, p.GameMode, p.GameModeNumeric, port, port))
 }
 
-func (gw *Gateway) Start(cpnChan chan<- ProcessingConn) error {
+type Listener struct {
+	Bind       string
+	PingStatus PingStatus
+
+	*raknet.Listener
+}
+
+type Gateway struct {
+	ID                   string
+	Listeners            []Listener
+	ReceiveProxyProtocol bool
+	ClientTimeout        time.Duration
+	ServerIDs            []string
+	Log                  logr.Logger
+}
+
+func (gw *Gateway) SetLogger(log logr.Logger) {
+	gw.Log = log
+}
+
+func (gw *Gateway) ListenAndServe(cpnChan chan<- net.Conn) error {
 	for n, listener := range gw.Listeners {
-		gw.Log.Info("Start listener",
+		gw.Log.Info("start listener",
 			"bind", listener.Bind,
 		)
 
@@ -71,16 +75,15 @@ func (gw *Gateway) Start(cpnChan chan<- ProcessingConn) error {
 	return nil
 }
 
-func (gw Gateway) wrapConn(c net.Conn) ProcessingConn {
-	return ProcessingConn{
-		Conn:          newConn(c),
-		remoteAddr:    c.RemoteAddr(),
+func (gw Gateway) wrapConn(c net.Conn) *Conn {
+	return &Conn{
+		Conn:          c.(*raknet.Conn),
 		proxyProtocol: gw.ReceiveProxyProtocol,
 		serverIDs:     gw.ServerIDs,
 	}
 }
 
-func (gw *Gateway) listenAndServe(cpnChan chan<- ProcessingConn) {
+func (gw *Gateway) listenAndServe(cpnChan chan<- net.Conn) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(gw.Listeners))
 
@@ -93,7 +96,7 @@ func (gw *Gateway) listenAndServe(cpnChan chan<- ProcessingConn) {
 					break
 				}
 
-				gw.Log.Info("connected",
+				gw.Log.Info("new connection",
 					"remoteAddress", c.RemoteAddr(),
 				)
 
