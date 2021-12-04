@@ -17,6 +17,7 @@ type Server struct {
 	ID                string
 	Domains           []string
 	Dialer            raknet.Dialer
+	DialTimeout       time.Duration
 	Address           string
 	SendProxyProtocol bool
 	DisconnectMessage string
@@ -41,7 +42,7 @@ func (s *Server) SetLogger(log logr.Logger) {
 }
 
 func (s Server) Dial() (*raknet.Conn, error) {
-	c, err := s.Dialer.Dial(s.Address)
+	c, err := s.Dialer.DialTimeout(s.Address, s.DialTimeout)
 	if err != nil {
 		return nil, err
 	}
