@@ -11,16 +11,17 @@ import (
 type Conn struct {
 	*raknet.Conn
 
-	gatewayID     string
-	proxyProtocol bool
-	realIP        bool
+	gatewayID             string
+	proxyProtocol         bool
+	realIP                bool
+	serverNotFoundMessage string
 }
 
 type ProcessedConn struct {
 	*Conn
 	readBytes     []byte
 	remoteAddr    net.Addr
-	srvHost       string
+	serverAddr    string
 	username      string
 	proxyProtocol bool
 }
@@ -38,10 +39,15 @@ func (c ProcessedConn) Username() string {
 }
 
 func (c ProcessedConn) ServerAddr() string {
-	return c.srvHost
+	return c.serverAddr
+}
+
+func (c ProcessedConn) ServerNotFoundMessage() string {
+	return c.serverNotFoundMessage
 }
 
 func (c ProcessedConn) Disconnect(msg string) error {
+	defer c.Close()
 	pk := protocol.Disconnect{
 		HideDisconnectionScreen: msg == "",
 		Message:                 msg,

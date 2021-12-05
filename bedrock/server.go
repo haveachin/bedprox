@@ -13,15 +13,15 @@ import (
 )
 
 type Server struct {
-	ID                string
-	Domains           []string
-	Dialer            raknet.Dialer
-	DialTimeout       time.Duration
-	Address           string
-	SendProxyProtocol bool
-	DisconnectMessage string
-	WebhookIDs        []string
-	Log               logr.Logger
+	ID                 string
+	Domains            []string
+	Dialer             raknet.Dialer
+	DialTimeout        time.Duration
+	Address            string
+	SendProxyProtocol  bool
+	DialTimeoutMessage string
+	WebhookIDs         []string
+	Log                logr.Logger
 }
 
 func (s Server) GetID() string {
@@ -55,8 +55,8 @@ func (s Server) replaceTemplates(c ProcessedConn, msg string) string {
 		"now":           time.Now().Format(time.RFC822),
 		"remoteAddress": c.RemoteAddr().String(),
 		"localAddress":  c.LocalAddr().String(),
-		"domain":        c.srvHost,
-		"serverAddress": s.Address,
+		"serverAddress": c.serverAddr,
+		"serverID":      s.ID,
 	}
 
 	for k, v := range tmpls {
@@ -67,7 +67,7 @@ func (s Server) replaceTemplates(c ProcessedConn, msg string) string {
 }
 
 func (s Server) handleOffline(c ProcessedConn) error {
-	msg := s.replaceTemplates(c, s.DisconnectMessage)
+	msg := s.replaceTemplates(c, s.DialTimeoutMessage)
 	return c.Disconnect(msg)
 }
 

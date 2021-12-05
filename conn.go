@@ -7,10 +7,17 @@ import (
 
 type ProcessedConn interface {
 	net.Conn
+	// GatewayID is the ID of the gateway that they connected through
 	GatewayID() string
+	// Username returns the username of the connecting player
 	Username() string
+	// ServerAddr returns the exact Server Address string
+	// that the client send to the server
 	ServerAddr() string
+	// Disconnect sends the client a disconnect message
+	// and closes the connection
 	Disconnect(msg string) error
+	ServerNotFoundMessage() string
 }
 
 type ConnTunnel struct {

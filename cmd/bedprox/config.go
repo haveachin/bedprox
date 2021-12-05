@@ -103,8 +103,9 @@ func loadListeners(gatewayID string) ([]bedrock.Listener, error) {
 }
 
 type gatewayConfig struct {
-	ClientTimeout time.Duration `mapstructure:"client_timeout"`
-	Servers       []string      `mapstructure:"servers"`
+	ClientTimeout         time.Duration `mapstructure:"client_timeout"`
+	Servers               []string      `mapstructure:"servers"`
+	ServerNotFoundMessage string        `mapstructure:"server_not_found_message"`
 }
 
 func newGateway(id string, cfg gatewayConfig) (bedprox.Gateway, error) {
@@ -114,10 +115,11 @@ func newGateway(id string, cfg gatewayConfig) (bedprox.Gateway, error) {
 	}
 
 	return &bedrock.Gateway{
-		ID:            id,
-		Listeners:     listeners,
-		ClientTimeout: cfg.ClientTimeout,
-		ServerIDs:     cfg.Servers,
+		ID:                    id,
+		Listeners:             listeners,
+		ClientTimeout:         cfg.ClientTimeout,
+		ServerIDs:             cfg.Servers,
+		ServerNotFoundMessage: cfg.ServerNotFoundMessage,
 	}, nil
 }
 
@@ -144,12 +146,12 @@ func loadGateways() ([]bedprox.Gateway, error) {
 }
 
 type serverConfig struct {
-	Domains           []string      `mapstructure:"domains"`
-	Address           string        `mapstructure:"address"`
-	ProxyBind         string        `mapstructure:"proxy_bind"`
-	DialTimeout       time.Duration `mapstructure:"dial_timeout"`
-	SendProxyProtocol bool          `mapstructure:"send_proxy_protocol"`
-	DisconnectMessage string        `mapstructure:"disconnect_message"`
+	Domains            []string      `mapstructure:"domains"`
+	Address            string        `mapstructure:"address"`
+	ProxyBind          string        `mapstructure:"proxy_bind"`
+	DialTimeout        time.Duration `mapstructure:"dial_timeout"`
+	SendProxyProtocol  bool          `mapstructure:"send_proxy_protocol"`
+	DialTimeoutMessage string        `mapstructure:"dial_timeout_message"`
 }
 
 func newServer(id string, cfg serverConfig) bedprox.Server {
@@ -163,10 +165,10 @@ func newServer(id string, cfg serverConfig) bedprox.Server {
 				},
 			},
 		},
-		DialTimeout:       cfg.DialTimeout,
-		Address:           cfg.Address,
-		SendProxyProtocol: cfg.SendProxyProtocol,
-		DisconnectMessage: cfg.DisconnectMessage,
+		DialTimeout:        cfg.DialTimeout,
+		Address:            cfg.Address,
+		SendProxyProtocol:  cfg.SendProxyProtocol,
+		DialTimeoutMessage: cfg.DialTimeoutMessage,
 	}
 }
 

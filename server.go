@@ -79,13 +79,14 @@ func (sg *ServerGateway) indexWebhooks() error {
 	return nil
 }
 
-func (sg ServerGateway) executeTemplate(msg string, c ProcessedConn) string {
+func (sg ServerGateway) executeTemplate(msg string, pc ProcessedConn) string {
 	tmpls := map[string]string{
-		"username":      c.Username(),
+		"username":      pc.Username(),
 		"now":           time.Now().Format(time.RFC822),
-		"remoteAddress": c.RemoteAddr().String(),
-		"localAddress":  c.LocalAddr().String(),
-		"serverAddress": c.ServerAddr(),
+		"remoteAddress": pc.RemoteAddr().String(),
+		"localAddress":  pc.LocalAddr().String(),
+		"serverAddress": pc.ServerAddr(),
+		"gatewayID":     pc.GatewayID(),
 	}
 
 	for k, v := range tmpls {
@@ -118,7 +119,9 @@ func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- Conn
 				"serverAddress", pc.ServerAddr(),
 				"remoteAddress", pc.RemoteAddr(),
 			)
-			_ = pc.Disconnect("Server not found")
+			msg := pc.ServerNotFoundMessage()
+			msg = sg.executeTemplate(msg, pc)
+			_ = pc.Disconnect(msg)
 			continue
 		}
 

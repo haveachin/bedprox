@@ -59,10 +59,10 @@ func (cp ConnProcessor) ProcessConn(c net.Conn) (bedprox.ProcessedConn, error) {
 		return nil, err
 	}
 	pc.username = iData.DisplayName
-	pc.srvHost = cData.ServerAddress
+	pc.serverAddr = cData.ServerAddress
 
-	if strings.Contains(pc.srvHost, ":") {
-		pc.srvHost, _, err = net.SplitHostPort(pc.srvHost)
+	if strings.Contains(pc.serverAddr, ":") {
+		pc.serverAddr, _, err = net.SplitHostPort(pc.serverAddr)
 		if err != nil {
 			return nil, err
 		}

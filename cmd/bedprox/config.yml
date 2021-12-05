@@ -7,10 +7,12 @@ api:
 gateways:
   mygateway:
     listeners:
-      - bind: 192.168.1.21:19132
       - bind: 192.168.1.31:19132
+        receive_proxy_protocol: true
+      - bind: 192.168.1.21:19132
     servers:
       - myserver
+    server_not_found_message: Sorry {{username}}, but {{serverAddress}} was not found
 
 servers:
   myserver:
@@ -48,7 +50,6 @@ defaults:
   server:
     proxy_bind: 0.0.0.0
     dial_timeout: 1s
-    disconnect_message: Sorry {{username}}, but the server is offline.
+    dial_timeout_message: Sorry {{username}}, but the server is currently unreachable
   webhook:
     client_timeout: 1s
-

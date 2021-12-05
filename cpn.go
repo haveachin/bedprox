@@ -31,7 +31,7 @@ func (cpn *CPN) Start(cpnChan <-chan net.Conn, srvChan chan<- ProcessedConn) {
 			cpn.Log.Error(err, "processing",
 				"remoteAddress", c.RemoteAddr(),
 			)
-			pc.Close()
+			c.Close()
 			continue
 		}
 		srvChan <- pc

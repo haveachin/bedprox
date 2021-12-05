@@ -46,11 +46,12 @@ type Listener struct {
 }
 
 type Gateway struct {
-	ID            string
-	Listeners     []Listener
-	ClientTimeout time.Duration
-	ServerIDs     []string
-	Log           logr.Logger
+	ID                    string
+	Listeners             []Listener
+	ClientTimeout         time.Duration
+	ServerIDs             []string
+	Log                   logr.Logger
+	ServerNotFoundMessage string
 }
 
 func (gw Gateway) GetID() string {
@@ -86,10 +87,11 @@ func (gw *Gateway) ListenAndServe(cpnChan chan<- net.Conn) error {
 
 func (gw Gateway) wrapConn(c net.Conn, l Listener) *Conn {
 	return &Conn{
-		Conn:          c.(*raknet.Conn),
-		gatewayID:     gw.ID,
-		proxyProtocol: l.ReceiveProxyProtocol,
-		realIP:        l.ReceiveRealIP,
+		Conn:                  c.(*raknet.Conn),
+		gatewayID:             gw.ID,
+		proxyProtocol:         l.ReceiveProxyProtocol,
+		realIP:                l.ReceiveRealIP,
+		serverNotFoundMessage: gw.ServerNotFoundMessage,
 	}
 }
 
