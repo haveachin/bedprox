@@ -3,6 +3,7 @@ package bedrock
 import (
 	"net"
 
+	"github.com/haveachin/bedprox/bedrock/protocol"
 	"github.com/sandertv/go-raknet"
 )
 
@@ -10,22 +11,27 @@ import (
 type Conn struct {
 	*raknet.Conn
 
-	proxyProtocol bool
-	serverIDs     []string
+	gatewayID             string
+	proxyProtocol         bool
+	realIP                bool
+	serverNotFoundMessage string
 }
 
 type ProcessedConn struct {
 	*Conn
 	readBytes     []byte
 	remoteAddr    net.Addr
-	srvHost       string
+	serverAddr    string
 	username      string
 	proxyProtocol bool
-	serverIDs     []string
 }
 
 func (c ProcessedConn) RemoteAddr() net.Addr {
 	return c.remoteAddr
+}
+
+func (c ProcessedConn) GatewayID() string {
+	return c.gatewayID
 }
 
 func (c ProcessedConn) Username() string {
@@ -33,5 +39,28 @@ func (c ProcessedConn) Username() string {
 }
 
 func (c ProcessedConn) ServerAddr() string {
-	return c.srvHost
+	return c.serverAddr
+}
+
+func (c ProcessedConn) ServerNotFoundMessage() string {
+	return c.serverNotFoundMessage
+}
+
+func (c ProcessedConn) Disconnect(msg string) error {
+	defer c.Close()
+	pk := protocol.Disconnect{
+		HideDisconnectionScreen: msg == "",
+		Message:                 msg,
+	}
+
+	b, err := protocol.MarshalPacket(&pk)
+	if err != nil {
+		return err
+	}
+
+	if _, err := c.Write(b); err != nil {
+		return err
+	}
+
+	return nil
 }

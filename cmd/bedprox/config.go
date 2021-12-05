@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -62,22 +63,33 @@ func newPingStatus(cfg pingStatusConfig) bedrock.PingStatus {
 }
 
 type listenerConfig struct {
-	Bind       string           `mapstructure:"bind"`
-	PingStatus pingStatusConfig `mapstructure:"ping_status"`
+	Bind                 string           `mapstructure:"bind"`
+	PingStatus           pingStatusConfig `mapstructure:"ping_status"`
+	ReceiveProxyProtocol bool             `mapstructure:"receive_proxy_protocol"`
+	ReceiveRealIP        bool             `mapstructure:"receive_real_ip"`
 }
 
 func newListener(cfg listenerConfig) bedrock.Listener {
 	return bedrock.Listener{
-		Bind:       cfg.Bind,
-		PingStatus: newPingStatus(cfg.PingStatus),
+		Bind:                 cfg.Bind,
+		PingStatus:           newPingStatus(cfg.PingStatus),
+		ReceiveProxyProtocol: cfg.ReceiveProxyProtocol,
+		ReceiveRealIP:        cfg.ReceiveRealIP,
 	}
 }
 
 func loadListeners(gatewayID string) ([]bedrock.Listener, error) {
-	var listeners []bedrock.Listener
-	for _, v := range viper.GetStringMap("gateways." + gatewayID + ".listeners") {
+	key := fmt.Sprintf("gateways.%s.listeners", gatewayID)
+	ll, ok := viper.Get(key).([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("gateway %q is missing listeners", gatewayID)
+	}
+
+	listeners := make([]bedrock.Listener, len(ll))
+	for n := range ll {
 		vpr := viper.Sub("defaults.gateway.listener")
-		vMap := v.(map[string]interface{})
+		lKey := fmt.Sprintf("%s.%d", key, n)
+		vMap := viper.GetStringMap(lKey)
 		if err := vpr.MergeConfigMap(vMap); err != nil {
 			return nil, err
 		}
@@ -85,17 +97,15 @@ func loadListeners(gatewayID string) ([]bedrock.Listener, error) {
 		if err := vpr.Unmarshal(&cfg); err != nil {
 			return nil, err
 		}
-		listeners = append(listeners, newListener(cfg))
+		listeners[n] = newListener(cfg)
 	}
-
 	return listeners, nil
 }
 
 type gatewayConfig struct {
-	Listeners            []listenerConfig `mapstructure:"-"`
-	ReceiveProxyProtocol bool             `mapstructure:"receive_proxy_protocol"`
-	ClientTimeout        time.Duration    `mapstructure:"client_timeout"`
-	Servers              []string         `mapstructure:"servers"`
+	ClientTimeout         time.Duration `mapstructure:"client_timeout"`
+	Servers               []string      `mapstructure:"servers"`
+	ServerNotFoundMessage string        `mapstructure:"server_not_found_message"`
 }
 
 func newGateway(id string, cfg gatewayConfig) (bedprox.Gateway, error) {
@@ -105,11 +115,11 @@ func newGateway(id string, cfg gatewayConfig) (bedprox.Gateway, error) {
 	}
 
 	return &bedrock.Gateway{
-		ID:                   id,
-		Listeners:            listeners,
-		ReceiveProxyProtocol: cfg.ReceiveProxyProtocol,
-		ClientTimeout:        cfg.ClientTimeout,
-		ServerIDs:            cfg.Servers,
+		ID:                    id,
+		Listeners:             listeners,
+		ClientTimeout:         cfg.ClientTimeout,
+		ServerIDs:             cfg.Servers,
+		ServerNotFoundMessage: cfg.ServerNotFoundMessage,
 	}, nil
 }
 
@@ -136,12 +146,12 @@ func loadGateways() ([]bedprox.Gateway, error) {
 }
 
 type serverConfig struct {
-	Domains           []string      `mapstructure:"domains"`
-	Address           string        `mapstructure:"address"`
-	ProxyBind         string        `mapstructure:"proxy_bind"`
-	DialTimeout       time.Duration `mapstructure:"dial_timeout"`
-	SendProxyProtocol bool          `mapstructure:"send_proxy_protocol"`
-	DisconnectMessage string        `mapstructure:"disconnect_message"`
+	Domains            []string      `mapstructure:"domains"`
+	Address            string        `mapstructure:"address"`
+	ProxyBind          string        `mapstructure:"proxy_bind"`
+	DialTimeout        time.Duration `mapstructure:"dial_timeout"`
+	SendProxyProtocol  bool          `mapstructure:"send_proxy_protocol"`
+	DialTimeoutMessage string        `mapstructure:"dial_timeout_message"`
 }
 
 func newServer(id string, cfg serverConfig) bedprox.Server {
@@ -155,10 +165,10 @@ func newServer(id string, cfg serverConfig) bedprox.Server {
 				},
 			},
 		},
-		DialTimeout:       cfg.DialTimeout,
-		Address:           cfg.Address,
-		SendProxyProtocol: cfg.SendProxyProtocol,
-		DisconnectMessage: cfg.DisconnectMessage,
+		DialTimeout:        cfg.DialTimeout,
+		Address:            cfg.Address,
+		SendProxyProtocol:  cfg.SendProxyProtocol,
+		DialTimeoutMessage: cfg.DialTimeoutMessage,
 	}
 }
 
