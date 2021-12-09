@@ -7,27 +7,23 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/haveachin/bedprox/webhook"
 )
 
 type Server interface {
 	GetID() string
 	GetDomains() []string
-	GetWebhookIDs() []string
-	ProcessConn(c net.Conn, webhooks []webhook.Webhook) (ConnTunnel, error)
+	ProcessConn(c net.Conn) (ConnTunnel, error)
 	SetLogger(log logr.Logger)
 }
 
 type ServerGateway struct {
 	GatewayIDServerIDs map[string][]string
 	Servers            []Server
-	Webhooks           []webhook.Webhook
 	Log                logr.Logger
+	Plugins            []Plugin
 
 	// "GatewayID@Domain" mapped to server
 	srvs map[string]Server
-	// Server ID mapped to webhooks
-	srvWhks map[string][]webhook.Webhook
 }
 
 func (sg *ServerGateway) indexServers() error {
@@ -57,28 +53,6 @@ func (sg *ServerGateway) indexServers() error {
 	return nil
 }
 
-// indexWebhooks indexes the webhooks that servers use.
-func (sg *ServerGateway) indexWebhooks() error {
-	whks := map[string]webhook.Webhook{}
-	for _, w := range sg.Webhooks {
-		whks[w.ID] = w
-	}
-
-	sg.srvWhks = map[string][]webhook.Webhook{}
-	for _, srv := range sg.Servers {
-		ww := make([]webhook.Webhook, len(srv.GetWebhookIDs()))
-		for n, id := range srv.GetWebhookIDs() {
-			w, ok := whks[id]
-			if !ok {
-				return fmt.Errorf("webhook with ID %q doesn't exist", id)
-			}
-			ww[n] = w
-		}
-		sg.srvWhks[srv.GetID()] = ww
-	}
-	return nil
-}
-
 func (sg ServerGateway) executeTemplate(msg string, pc ProcessedConn) string {
 	tmpls := map[string]string{
 		"username":      pc.Username(),
@@ -98,10 +72,6 @@ func (sg ServerGateway) executeTemplate(msg string, pc ProcessedConn) string {
 
 func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- ConnTunnel) error {
 	if err := sg.indexServers(); err != nil {
-		return err
-	}
-
-	if err := sg.indexWebhooks(); err != nil {
 		return err
 	}
 
@@ -130,8 +100,13 @@ func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- Conn
 			"remoteAddress", pc.RemoteAddr(),
 		)
 
-		whks := sg.srvWhks[srv.GetID()]
-		ct, err := srv.ProcessConn(pc, whks)
+		if pc.IsJoining() {
+			for _, p := range sg.Plugins {
+				p.OnPlayerJoin()
+			}
+		}
+
+		ct, err := srv.ProcessConn(pc)
 		if err != nil {
 			ct.Close()
 			continue

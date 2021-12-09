@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/haveachin/bedprox"
-	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
 )
 
@@ -20,7 +19,6 @@ type Server struct {
 	Address            string
 	SendProxyProtocol  bool
 	DialTimeoutMessage string
-	WebhookIDs         []string
 	Log                logr.Logger
 }
 
@@ -30,10 +28,6 @@ func (s Server) GetID() string {
 
 func (s Server) GetDomains() []string {
 	return s.Domains
-}
-
-func (s Server) GetWebhookIDs() []string {
-	return s.WebhookIDs
 }
 
 func (s *Server) SetLogger(log logr.Logger) {
@@ -71,7 +65,7 @@ func (s Server) handleOffline(c ProcessedConn) error {
 	return c.Disconnect(msg)
 }
 
-func (s Server) ProcessConn(c net.Conn, webhooks []webhook.Webhook) (bedprox.ConnTunnel, error) {
+func (s Server) ProcessConn(c net.Conn) (bedprox.ConnTunnel, error) {
 	pc := c.(*ProcessedConn)
 	rc, err := s.Dial()
 	if err != nil {

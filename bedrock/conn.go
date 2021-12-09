@@ -64,3 +64,7 @@ func (c ProcessedConn) Disconnect(msg string) error {
 
 	return nil
 }
+
+func (c ProcessedConn) IsJoining() bool {
+	return true
+}

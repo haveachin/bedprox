@@ -18,6 +18,7 @@ type ProcessedConn interface {
 	// and closes the connection
 	Disconnect(msg string) error
 	ServerNotFoundMessage() string
+	IsJoining() bool
 }
 
 type ConnTunnel struct {
