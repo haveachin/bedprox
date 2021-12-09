@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 
 	"github.com/haveachin/bedprox"
 	"github.com/haveachin/bedprox/bedrock"
-	"github.com/haveachin/bedprox/webhook"
 	"github.com/sandertv/go-raknet"
 	"github.com/spf13/viper"
 )
@@ -201,39 +199,4 @@ func loadCPNs() ([]bedprox.CPN, error) {
 	}
 
 	return make([]bedprox.CPN, cfg.Count), nil
-}
-
-type webhookConfig struct {
-	ClientTimeout time.Duration `mapstructure:"client_timeout"`
-	URL           string        `mapstructure:"url"`
-	Events        []string      `mapstructure:"events"`
-}
-
-func newWebhook(id string, cfg webhookConfig) webhook.Webhook {
-	return webhook.Webhook{
-		ID: id,
-		HTTPClient: &http.Client{
-			Timeout: cfg.ClientTimeout,
-		},
-		URL:        cfg.URL,
-		EventTypes: cfg.Events,
-	}
-}
-
-func loadWebhooks() ([]webhook.Webhook, error) {
-	var webhooks []webhook.Webhook
-	for id, v := range viper.GetStringMap("webhooks") {
-		vpr := viper.Sub("defaults.webhook")
-		vMap := v.(map[string]interface{})
-		if err := vpr.MergeConfigMap(vMap); err != nil {
-			return nil, err
-		}
-		var cfg webhookConfig
-		if err := vpr.Unmarshal(&cfg); err != nil {
-			return nil, err
-		}
-		webhooks = append(webhooks, newWebhook(id, cfg))
-	}
-
-	return webhooks, nil
 }

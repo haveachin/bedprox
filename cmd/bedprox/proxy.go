@@ -13,9 +13,10 @@ type proxy struct {
 	cpns          []bedprox.CPN
 	serverGateway bedprox.ServerGateway
 	connPool      bedprox.ConnPool
+	plugins       []bedprox.Plugin
 }
 
-func loadProxy() (proxy, error) {
+func loadProxyFromConfig() (proxy, error) {
 	gateways, err := loadGateways()
 	if err != nil {
 		return proxy{}, err
@@ -70,6 +71,7 @@ func (p proxy) start(log logr.Logger) error {
 
 	go p.connPool.Start(poolChan)
 
+	p.serverGateway.Plugins = p.plugins
 	for _, srv := range p.serverGateway.Servers {
 		srv.SetLogger(log)
 	}

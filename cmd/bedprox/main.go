@@ -4,10 +4,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"plugin"
 	"syscall"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
+	"github.com/haveachin/bedprox"
 	"go.uber.org/zap"
 )
 
@@ -37,11 +39,27 @@ func init() {
 func main() {
 	logger.Info("loading proxy")
 
-	p, err := loadProxy()
+	p, err := loadProxyFromConfig()
 	if err != nil {
-		logger.Error(err, "failed to load proxy")
+		logger.Error(err, "failed loading proxy")
 		return
 	}
+
+	plug, err := plugin.Open("plugintest.so")
+	if err != nil {
+		logger.Error(err, "failed loading plugin")
+		return
+	}
+
+	pt, err := plug.Lookup("Plugin")
+	if err != nil {
+		logger.Error(err, "failed loading pt PLugin")
+		return
+	}
+
+	ppt := pt.(bedprox.Plugin)
+	ppt.Load()
+	p.plugins = []bedprox.Plugin{ppt}
 
 	logger.Info("starting proxy")
 
