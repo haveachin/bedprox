@@ -90,7 +90,7 @@ func (s Server) ProcessConn(c net.Conn, webhooks []webhook.Webhook) (bedprox.Con
 	}
 
 	return bedprox.ConnTunnel{
-		Conn:       c,
+		Conn:       pc,
 		RemoteConn: rc,
 	}, nil
 }

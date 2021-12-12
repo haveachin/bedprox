@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
+	"github.com/haveachin/bedprox"
+	"github.com/haveachin/bedprox/bedrock"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +39,7 @@ func init() {
 func main() {
 	logger.Info("loading proxy")
 
-	p, err := loadProxy()
+	p, err := bedprox.NewProxy(&bedrock.Config{})
 	if err != nil {
 		logger.Error(err, "failed to load proxy")
 		return
@@ -46,7 +48,7 @@ func main() {
 	logger.Info("starting proxy")
 
 	go func() {
-		if err := p.start(logger); err != nil {
+		if err := p.Start(logger); err != nil {
 			logger.Error(err, "failed to start the proxy")
 			os.Exit(1)
 		}

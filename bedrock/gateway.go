@@ -62,6 +62,10 @@ func (gw Gateway) GetServerIDs() []string {
 	return gw.ServerIDs
 }
 
+func (gw Gateway) GetServerNotFoundMessage() string {
+	return gw.ServerNotFoundMessage
+}
+
 func (gw *Gateway) SetLogger(log logr.Logger) {
 	gw.Log = log
 }
@@ -87,11 +91,10 @@ func (gw *Gateway) ListenAndServe(cpnChan chan<- net.Conn) error {
 
 func (gw Gateway) wrapConn(c net.Conn, l Listener) *Conn {
 	return &Conn{
-		Conn:                  c.(*raknet.Conn),
-		gatewayID:             gw.ID,
-		proxyProtocol:         l.ReceiveProxyProtocol,
-		realIP:                l.ReceiveRealIP,
-		serverNotFoundMessage: gw.ServerNotFoundMessage,
+		Conn:          c.(*raknet.Conn),
+		gatewayID:     gw.ID,
+		proxyProtocol: l.ReceiveProxyProtocol,
+		realIP:        l.ReceiveRealIP,
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/haveachin/bedprox"
 	"github.com/haveachin/bedprox/bedrock/protocol"
 	"github.com/haveachin/bedprox/bedrock/protocol/login"
@@ -15,9 +14,7 @@ import (
 )
 
 // Processing Node
-type ConnProcessor struct {
-	Log logr.Logger
-}
+type ConnProcessor struct{}
 
 func (cp ConnProcessor) ProcessConn(c net.Conn) (bedprox.ProcessedConn, error) {
 	pc := ProcessedConn{

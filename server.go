@@ -20,9 +20,11 @@ type Server interface {
 
 type ServerGateway struct {
 	GatewayIDServerIDs map[string][]string
-	Servers            []Server
-	Webhooks           []webhook.Webhook
-	Log                logr.Logger
+	// ServerNotFoundMessages maps the GatewayID to server not found message
+	ServerNotFoundMessages map[string]string
+	Servers                []Server
+	Webhooks               []webhook.Webhook
+	Log                    logr.Logger
 
 	// "GatewayID@Domain" mapped to server
 	srvs map[string]Server
@@ -119,7 +121,7 @@ func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- Conn
 				"serverAddress", pc.ServerAddr(),
 				"remoteAddress", pc.RemoteAddr(),
 			)
-			msg := pc.ServerNotFoundMessage()
+			msg := sg.ServerNotFoundMessages[pc.GatewayID()]
 			msg = sg.executeTemplate(msg, pc)
 			_ = pc.Disconnect(msg)
 			continue
@@ -136,6 +138,12 @@ func (sg ServerGateway) Start(srvChan <-chan ProcessedConn, poolChan chan<- Conn
 			ct.Close()
 			continue
 		}
+
+		// Shallow copy webhooks to mitigate race conditions
+		whksCopy := make([]webhook.Webhook, len(whks))
+		_ = copy(whksCopy, whks)
+		ct.Webhooks = whksCopy
+
 		poolChan <- ct
 	}
 

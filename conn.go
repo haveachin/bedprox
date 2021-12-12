@@ -3,6 +3,8 @@ package bedprox
 import (
 	"io"
 	"net"
+
+	"github.com/haveachin/bedprox/webhook"
 )
 
 type ProcessedConn interface {
@@ -17,12 +19,12 @@ type ProcessedConn interface {
 	// Disconnect sends the client a disconnect message
 	// and closes the connection
 	Disconnect(msg string) error
-	ServerNotFoundMessage() string
 }
 
 type ConnTunnel struct {
-	Conn       net.Conn
+	Conn       ProcessedConn
 	RemoteConn net.Conn
+	Webhooks   []webhook.Webhook
 }
 
 func (t ConnTunnel) Start() {
