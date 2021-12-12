@@ -11,10 +11,9 @@ import (
 type Conn struct {
 	*raknet.Conn
 
-	gatewayID             string
-	proxyProtocol         bool
-	realIP                bool
-	serverNotFoundMessage string
+	gatewayID     string
+	proxyProtocol bool
+	realIP        bool
 }
 
 type ProcessedConn struct {
@@ -40,10 +39,6 @@ func (c ProcessedConn) Username() string {
 
 func (c ProcessedConn) ServerAddr() string {
 	return c.serverAddr
-}
-
-func (c ProcessedConn) ServerNotFoundMessage() string {
-	return c.serverNotFoundMessage
 }
 
 func (c ProcessedConn) Disconnect(msg string) error {
