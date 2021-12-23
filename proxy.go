@@ -63,6 +63,7 @@ func (p Proxy) Start(log logr.Logger) error {
 		go cpn.Start(cpnChan, srvChan)
 	}
 
+	p.ConnPool.Log = log
 	go p.ConnPool.Start(poolChan)
 
 	for _, srv := range p.ServerGateway.Servers {
