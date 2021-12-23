@@ -2,9 +2,7 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"log"
-	"os"
 
 	_ "embed"
 
@@ -18,14 +16,15 @@ func init() {
 	configPath = envString(configPathEnv, configPath)
 
 	viper.SetConfigFile(configPath)
-	viper.ReadConfig(bytes.NewBuffer(defaultConfig))
-	if err := viper.MergeInConfig(); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			if err := os.WriteFile(configPath, defaultConfig, 0644); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			log.Fatal(err)
-		}
+	if err := viper.ReadConfig(bytes.NewBuffer(defaultConfig)); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := viper.SafeWriteConfigAs(configPath); err == nil {
+		return
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatal(err)
 	}
 }
